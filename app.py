@@ -70,13 +70,18 @@ def login_required(f):
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = SESSION_SECRET_KEY
 
-# Secure session cookie defaults (dev-friendly; set HTTPS to enable Secure cookies)
+# Secure session cookie defaults - auto-detect HTTPS
+@app.before_request
+def detect_https():
+    # Auto-enable secure cookies if request is HTTPS
+    if request.is_secure or request.headers.get('X-Forwarded-Proto', '') == 'https':
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='None',  # Allow cross-site cookies for deployment
+    SESSION_COOKIE_SAMESITE='Lax',  # Default for HTTP
 )
-if os.environ.get('ZAGROS_COOKIE_SECURE', '0') == '1':
-    app.config['SESSION_COOKIE_SECURE'] = True
 
 # CORS configuration - use wildcard without credentials for production
 if ALLOWED_CORS_ORIGINS == '*':
