@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zagros - Intelligence System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/background-theme.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="login-modal" style="display: flex;">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="fas fa-mountain"></i>
+                    <span>Z</span>
+                </div>
+                <h2>zagros</h2>
+                <p>Intelligence Platform</p>
+            </div>
+            <div class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="Şifreyi girin..." autocomplete="off">
+                </div>
+                <button id="loginBtn" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Giriş Yap
+                </button>
+                <div id="loginError" class="login-error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Hatalı şifre!</span>
+                </div>
+            </div>
+            <div class="login-footer">
+                <p>discord.gg/zagros</p>
+            </div>
+        </div>
+        </section>
+    </div>
+
+    <!-- Floating Background Orbs -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+    
+    <!-- V for Vendetta Theme Background -->
+    <div class="vendetta-bg">
+        <div class="zagros-text-bg">ZAGROS</div>
+        <div class="zagros-text-bg z2">ZAGROS</div>
+        <div class="zagros-text-bg z3">ZAGROS</div>
+        <div class="mask-overlay"></div>
+        <div class="matrix-rain"></div>
+    </div>
+
+    <!-- Background Music - Auto Play -->
+    <div class="audio-controls">
+        <button id="musicToggle" class="music-btn playing" title="Müziği Durdur">
+            <i class="fas fa-volume-up"></i>
+        </button>
+    </div>
+    <iframe id="bgMusic" width="0" height="0" src="https://www.youtube.com/embed/xSuSHl8EBrw?autoplay=1&loop=1&playlist=xSuSHl8EBrw&mute=0&start=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:none;"></iframe>
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><i class="fas fa-mountain"></i></div>
+                <div class="brand-text">
+                    <div class="brand-name">ZAGROS</div>
+                    <div class="brand-sub">Intelligence Console</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav" id="sidebarNav">
+                <button class="nav-item active" data-panel="panelSearch" type="button">
+                    <i class="fas fa-search"></i>
+                    <span>ID Search</span>
+                </button>
+                <button class="nav-item" data-panel="panelResults" type="button">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Results</span>
+                </button>
+                <button class="nav-item" data-panel="panelDatabase" type="button">
+                    <i class="fas fa-database"></i>
+                    <span>Database</span>
+                </button>
+                <button class="nav-item" data-panel="panelAdmin" type="button">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-meta">
+                    <div class="meta-row"><span class="meta-k">Mode</span><span class="meta-v">Secure</span></div>
+                    <div class="meta-row"><span class="meta-k">Audio</span><span class="meta-v">On</span></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-mountain"></i>
+                    <span class="logo-z">Z</span>
+                </div>
+                <div class="logo-text">
+                    <h1>zagros</h1>
+                    <span class="logo-tagline">Intelligence Platform</span>
+                </div>
+            </div>
+            <div class="subtitle">Multi-Database Arama Sistemi</div>
+        </header>
+
+        <!-- Stats Panel -->
+        <div class="stats-panel" id="statsPanel">
+            <div class="stat-card">
+                <i class="fas fa-database"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="totalRecords">-</span>
+                    <span class="stat-label">Toplam Kayıt</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-server"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="dbCount">3</span>
+                    <span class="stat-label">Veritabanı</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-bolt"></i>
+                <div class="stat-info">
+                    <span class="stat-value" id="activeStatus">Aktif</span>
+                    <span class="stat-label">API Durumu</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <section class="app-panel active" id="panelSearch">
+        <div class="search-section">
+            <!-- Tab Buttons -->
+            <div class="search-tabs">
+                <button class="search-tab active" id="discordTab" data-target="discordPanel">
+                    <i class="fab fa-discord"></i> Discord ID
+                </button>
+            </div>
+
+            <!-- Discord ID Search Panel -->
+            <div class="search-panel active" id="discordPanel">
+                <div class="search-box">
+                    <input type="text" id="discordIdInput" placeholder="Discord ID girin (örn: 366627677500604437)" maxlength="20">
+                </div>
+                <div class="search-actions">
+                    <button class="search-btn primary" id="searchIdBtn">
+                        <i class="fas fa-search"></i> Kontrol Et
+                    </button>
+                    <button class="search-btn secondary" id="fullReportBtn">
+                        <i class="fas fa-file-alt"></i> Tam Rapor
+                    </button>
+                </div>
+                <div class="search-hint">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Kontrol Et:</strong> Hızlı ID sorgusu | <strong>Tam Rapor:</strong> ID + Email + IP + OSINT analizi
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-section" id="loadingSection">
+            <div class="spinner"></div>
+            <p>Zagros veritabanları taranıyor...</p>
+        </div>
+
+        </section>
+
+        <!-- Results Section -->
+        <section class="app-panel" id="panelResults">
+        <div class="results-section" id="resultsSection">
+            <div class="investigation-header">
+                <div class="investigation-title">
+                    <i class="fas fa-search"></i>
+                    <h2>ID SORGUSU SONUÇLARI</h2>
+                </div>
+                <div class="investigation-meta">
+                    <span class="investigation-date">Tarih: <span id="investigationDate">-</span></span>
+                </div>
+            </div>
+            
+            <!-- Subject Profile Card -->
+            <div class="subject-profile" id="subjectProfile">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="profile-info">
+                        <h3>ARANAN ID</h3>
+                        <div class="profile-id" id="subjectId">-</div>
+                        <div class="profile-status" id="profileStatus">
+                            <span class="status-badge found">KAYIT BULUNDU</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-card discord-profile">
+                    <div class="summary-icon"><i class="fab fa-discord"></i></div>
+                    <div class="summary-content">
+                        <h3>DISCORD PROFİLİ</h3>
+                        <div id="discordProfileInfo">
+                            <div class="profile-preview" id="profilePreview">
+                                <img id="discordAvatar" src="" alt="Avatar" style="width: 60px; height: 60px; border-radius: 50%; display: none;">
+                                <div id="discordUsername">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="summary-card emails">
+                    <div class="summary-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="summary-content">
+                        <h3>E-POSTA ADRESLERİ</h3>
+                        <ul id="emailsList"></ul>
+                    </div>
+                </div>
+                <div class="summary-card ips">
+                    <div class="summary-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="summary-content">
+                        <h3>IP ADRESLERİ / LOKASYON</h3>
+                        <ul id="ipsList"></ul>
+                    </div>
+                </div>
+                <div class="summary-card usernames">
+                    <div class="summary-icon"><i class="fas fa-id-badge"></i></div>
+                    <div class="summary-content">
+                        <h3>KULLANICI ADLARI</h3>
+                        <ul id="usernamesList"></ul>
+                    </div>
+                </div>
+                <div class="summary-card ip-info" style="grid-column: 1 / -1;">
+                    <div class="summary-icon"><i class="fas fa-network-wired"></i></div>
+                    <div class="summary-content">
+                        <h3>IP BİLGİSİ - LOKASYON & ISP</h3>
+                        <div id="ipInfoGrid" class="ip-info-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Results -->
+            <div class="db-results" id="dbResults">
+                <div class="db-section" id="foxnetSection">
+                    <div class="db-header">
+                        <h3><i class="fas fa-mountain"></i> Zagros DB Alpha</h3>
+                        <span class="db-count" id="foxnetCount">0 kayıt</span>
+                    </div>
+                    <div class="records-list" id="foxnetRecords"></div>
+                </div>
+                
+                <div class="db-section" id="fiveSqlSection">
+                    <div class="db-header">
+                        <h3><i class="fas fa-mountain"></i> Zagros DB Beta</h3>
+                        <span class="db-count" id="fiveSqlCount">0 kayıt</span>
+                    </div>
+                    <div class="records-list" id="fiveSqlRecords"></div>
+                </div>
+                
+                <div class="db-section" id="mariadbSection">
+                    <div class="db-header">
+                        <h3><i class="fas fa-mountain"></i> Zagros DB Gamma</h3>
+                        <span class="db-count" id="mariadbCount">0 kayıt</span>
+                    </div>
+                    <div class="records-list" id="mariadbRecords"></div>
+                </div>
+            </div>
+
+            <!-- Discord Friends Section -->
+            <div class="discord-friends-section" id="discordFriendsSection" style="display: none; margin-top: 30px;">
+                <div class="investigation-header" style="margin-bottom: 20px;">
+                    <div class="investigation-title">
+                        <i class="fab fa-discord" style="color: #5865F2;"></i>
+                        <h2>DISCORD ARKADAŞLARI</h2>
+                    </div>
+                    <div class="friends-actions">
+                        <button class="search-btn secondary" id="loadFriendsBtn">
+                            <i class="fas fa-users"></i> Arkadaşları Yükle
+                        </button>
+                        <span class="friends-count" id="friendsCount">0 arkadaş</span>
+                    </div>
+                </div>
+                
+                <div class="summary-card friends-card" style="border-left: 4px solid #5865F2; background: rgba(88, 101, 242, 0.1);">
+                    <div class="summary-icon"><i class="fas fa-users" style="color: #5865F2;"></i></div>
+                    <div class="summary-content">
+                        <h3>ARKADAŞ LİSTESİ</h3>
+                        <div style="overflow:auto;">
+                            <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="text-align:left; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                        <th style="padding:10px; width: 150px;">Discord ID</th>
+                                        <th style="padding:10px; width: 200px;">Kullanıcı Adı</th>
+                                        <th style="padding:10px; width: 200px;">E-Posta</th>
+                                        <th style="padding:10px; width: 120px;">IP</th>
+                                        <th style="padding:10px; width: 100px;">İlişki</th>
+                                        <th style="padding:10px;">Avatar</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="friendsTableBody">
+                                    <tr>
+                                        <td colspan="6" style="padding:10px; color: var(--text-muted); text-align: center;">
+                                            <i class="fas fa-users"></i> Arkadaş listesi yüklenmemiş. Yukarıdaki "Arkadaşları Yükle" butonuna tıklayın.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="discord-friends-section" id="closeFriendsSection" style="display: none; margin-top: 20px;">
+                <div class="investigation-header" style="margin-bottom: 12px;">
+                    <div class="investigation-title">
+                        <i class="fas fa-star" style="color: #fbbf24;"></i>
+                        <h2>YAKIN ARKADAŞ MAİLLERİ</h2>
+                    </div>
+                    <div class="friends-actions">
+                        <span class="friends-count" id="closeFriendsCount">0 yakın arkadaş</span>
+                    </div>
+                </div>
+
+                <div class="summary-card friends-card" style="border-left: 4px solid #fbbf24; background: rgba(251, 191, 36, 0.08);">
+                    <div class="summary-icon"><i class="fas fa-star" style="color: #fbbf24;"></i></div>
+                    <div class="summary-content">
+                        <h3>YAKIN ARKADAŞLAR</h3>
+                        <div style="overflow:auto;">
+                            <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="text-align:left; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                        <th style="padding:10px; width: 150px;">Discord ID</th>
+                                        <th style="padding:10px; width: 150px;">Kullanıcı Adı</th>
+                                        <th style="padding:10px; width: 200px;">E-Posta</th>
+                                        <th style="padding:10px; width: 120px;">IP</th>
+                                        <th style="padding:10px;">Etiket</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="closeFriendsTableBody">
+                                    <tr>
+                                        <td colspan="5" style="padding:10px; color: var(--text-muted); text-align: center;">
+                                            Yakın arkadaş verisi bekleniyor...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Findcord Results Section -->
+            <div class="findcord-results-section" id="findcordResultsSection" style="display: none; margin-top: 30px;">
+                <div class="investigation-header" style="margin-bottom: 20px;">
+                    <div class="investigation-title">
+                        <i class="fab fa-discord" style="color: #5865F2;"></i>
+                        <h2>FINDCORD API SONUÇLARI</h2>
+                    </div>
+                </div>
+                <div class="summary-card findcord-card" style="border-left: 4px solid #5865F2; background: rgba(88, 101, 242, 0.1);">
+                    <div class="summary-icon"><i class="fab fa-discord" style="color: #5865F2;"></i></div>
+                    <div class="summary-content">
+                        <h3>FINDCORD VERİTABANI</h3>
+                        <div id="findcordDbInfo">
+                            <p style="color: var(--text-muted);">Findcord API sonuçları burada görüntülenecek...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Results -->
+            <div class="no-results" id="noResults">
+                <i class="fas fa-mountain"></i>
+                <h3>Sonuç Bulunamadı</h3>
+                <p>Bu ID için Zagros veritabanlarında kayıt bulunmuyor.</p>
+            </div>
+
+            <!-- OSINT Results Section -->
+            <div class="osint-section" id="osintSection">
+                <div class="osint-header">
+                    <h2><i class="fas fa-envelope"></i> Email OSINT Sonuçları</h2>
+                </div>
+                
+                <div class="summary-card" style="grid-column: 1 / -1; margin-top: 15px;">
+                    <div class="summary-icon"><i class="fas fa-table"></i></div>
+                    <div class="summary-content">
+                        <h3>EMAIL PROFİL TABLOSU</h3>
+                        <div style="overflow:auto;">
+                            <table style="width:100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="text-align:left; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                        <th style="padding:10px; width: 220px;">Alan</th>
+                                        <th style="padding:10px;">Sonuç</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="osintProfileTableBody">
+                                    <tr>
+                                        <td style="padding:10px; color: var(--text-muted);">Bekleniyor</td>
+                                        <td style="padding:10px; color: var(--text-muted);">Email OSINT sonuçları burada listelenecek...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </section>
+
+        <!-- API Upload Section -->
+        <section class="app-panel" id="panelDatabase">
+        <div class="upload-section">
+            <div class="upload-header" id="uploadHeader">
+                <h3><i class="fas fa-cloud-upload-alt"></i> SQL Upload API</h3>
+                <i class="fas fa-chevron-down toggle-icon"></i>
+            </div>
+            <div class="upload-panel" id="uploadPanel">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-file-upload"></i>
+                    <p>SQL dosyasını sürükleyin veya tıklayarak seçin</p>
+                    <input type="file" id="fileInput" accept=".sql" hidden>
+                </div>
+                <div class="uploaded-files" id="uploadedFiles">
+                    <h4>Mevcut SQL Dosyaları:</h4>
+                    <ul id="filesList"></ul>
+                </div>
+            </div>
+        </div>
+        </section>
+
+        <section class="app-panel" id="panelAdmin">
+            <div class="upload-section" style="margin-top: 0;">
+                <div class="upload-header" style="cursor: default;">
+                    <h3><i class="fas fa-user-shield"></i> Admin Panel</h3>
+                    <span class="db-count" style="background: var(--bg-dark);">Login gerekli</span>
+                </div>
+                <div class="upload-panel" style="display:block;">
+                    <div style="overflow:auto;">
+                        <table style="width:100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Ticket</th>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Şehir/İlçe</th>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Kategori</th>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Aciliyet</th>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Durum</th>
+                                    <th style="padding:10px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align:left;">Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminIhbarBody">
+                                <tr>
+                                    <td colspan="6" style="padding:10px; color: var(--text-muted);">Bekleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 12px; color: var(--text-muted); font-size: 12px;">
+                        İhbar yönetimi: <a href="/ihbar/local" style="color: var(--primary); text-decoration:none;">/ihbar/local</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                <i class="fas fa-mountain"></i> ZAGROS Intelligence © 2025 | 
+                <span class="api-badge">REST API Ready</span> | 
+                <a href="/ihbar" style="color: var(--danger); text-decoration: none; margin-left: 10px;">
+                    <i class="fas fa-shield-alt"></i> EGM İhbar
+                </a>
+            </p>
+        </footer>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}?v={{ range(1, 100000) | random }}"></script>
+</body>
+</html>

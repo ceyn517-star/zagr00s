@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EGM İhbar Sistemi - zagros</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+    <style>
+        .ihbar-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .ihbar-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .ihbar-header h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .ihbar-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+        
+        .ihbar-form {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius);
+            padding: 40px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .form-group label .required {
+            color: var(--danger);
+            margin-left: 4px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: var(--bg-dark);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--danger);
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        }
+        
+        .form-group textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+            border: none;
+            padding: 18px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
+        }
+        
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .submit-btn i {
+            font-size: 18px;
+        }
+        
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .alert.show {
+            display: flex;
+        }
+        
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: var(--success);
+        }
+        
+        .alert-error {
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: var(--danger);
+        }
+        
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--warning);
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info-box h4 {
+            color: #3b82f6;
+            font-size: 14px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-box p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- V for Vendetta Theme Background -->
+    <div class="vendetta-bg">
+        <div class="zagros-text-bg">ZAGROS</div>
+        <div class="zagros-text-bg z2">ZAGROS</div>
+        <div class="zagros-text-bg z3">ZAGROS</div>
+        <div class="mask-overlay"></div>
+        <div class="matrix-rain"></div>
+    </div>
+
+    <div class="ihbar-container">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Ana Sayfaya Dön
+        </a>
+        
+        <div class="ihbar-header">
+            <h1><i class="fas fa-shield-alt"></i> EGM İhbar Sistemi</h1>
+            <p>Emniyet Genel Müdürlüğü online ihbar formu</p>
+            <div style="margin-top: 12px; display:flex; gap: 10px; flex-wrap: wrap;">
+                <a href="{{ egm_url }}" target="_blank" rel="noopener noreferrer" class="chip-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                    <i class="fas fa-external-link-alt"></i>
+                    Resmi EGM Sayfasını Yeni Sekmede Aç
+                </a>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h4><i class="fas fa-info-circle"></i> Bilgilendirme</h4>
+            <p>Bu form, ihbarı sistem içinde "Olay Kaydı" olarak oluşturur ve yönetim panelinde takip edilmesini sağlar.
+            Yanlış veya asılsız ihbarlar hakkında yasal işlem yapılabilir.</p>
+            <p class="subtle">Resmi başvuru için üstteki "Resmi EGM Sayfasını" kullanın. Bu sayfa resmi kurumların sistemi değildir ve otomatik kurum iletimi garanti etmez.</p>
+        </div>
+        
+        <div class="alert alert-success" id="successAlert">
+            <i class="fas fa-check-circle"></i>
+            <span id="successMessage">İhbar kaydı oluşturuldu!</span>
+        </div>
+        
+        <div class="alert alert-error" id="errorAlert">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="errorMessage">Bir hata oluştu.</span>
+        </div>
+        
+        <form class="ihbar-form" id="ihbarForm">
+            <div class="form-group">
+                <label>
+                    Olay Senaryosu (Simülasyon)
+                </label>
+                <div class="btn-row" style="gap: 10px; flex-wrap: wrap;">
+                    <select id="scenarioSelect" class="form-control" style="flex: 1; min-width: 260px;">
+                        <option value="">Senaryo seçin...</option>
+                    </select>
+                    <button type="button" class="chip-btn" id="scenarioFillBtn">Otomatik Doldur</button>
+                    <button type="button" class="chip-btn" id="scenarioAutoBtn" data-enabled="1">Oto: Açık</button>
+                </div>
+                <div class="subtle">Bu alan yalnızca simülasyon/arayüz testi içindir. Gerçek olay üretmez ve resmi kurumların sistemi değildir.</div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    İhbar Kategorisi
+                    <span class="required">*</span>
+                </label>
+                <div class="btn-row" id="categoryButtons">
+                    <button type="button" class="chip-btn" data-value="SIBER">Siber</button>
+                    <button type="button" class="chip-btn" data-value="DOLANDIRICILIK">Dolandırıcılık</button>
+                    <button type="button" class="chip-btn" data-value="TEHDIT">Tehdit</button>
+                    <button type="button" class="chip-btn" data-value="KAYIP">Kayıp</button>
+                    <button type="button" class="chip-btn" data-value="DIGER">Diğer</button>
+                </div>
+                <div class="subtle">Kısa ve doğru kategori seçimi olay kaydının hızlı yönlendirilmesini sağlar.</div>
+                <input type="hidden" id="category" name="category" value="SIBER">
+            </div>
+
+            <div class="form-group">
+                <label>
+                    Aciliyet
+                    <span class="required">*</span>
+                </label>
+                <div class="btn-row" id="urgencyButtons">
+                    <button type="button" class="chip-btn" data-value="LOW">Düşük</button>
+                    <button type="button" class="chip-btn active" data-value="MEDIUM">Orta</button>
+                    <button type="button" class="chip-btn" data-value="HIGH">Yüksek</button>
+                    <button type="button" class="chip-btn" data-value="CRITICAL">Kritik</button>
+                </div>
+                <div class="subtle">Kritik: aktif tehdit / can güvenliği / devam eden dolandırıcılık.</div>
+                <input type="hidden" id="urgency" name="urgency" value="MEDIUM">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="incidentTime">Olay Zamanı (opsiyonel)</label>
+                    <input id="incidentTime" name="incidentTime" type="datetime-local" />
+                </div>
+                <div class="form-group">
+                    <label for="incidentChannel">İletişim Kanalı (opsiyonel)</label>
+                    <select id="incidentChannel" name="incidentChannel">
+                        <option value="">Seçiniz</option>
+                        <option value="E-posta">E-posta</option>
+                        <option value="SMS">SMS</option>
+                        <option value="Telefon">Telefon</option>
+                        <option value="Sosyal medya">Sosyal medya</option>
+                        <option value="Mesajlaşma uygulaması">Mesajlaşma uygulaması</option>
+                        <option value="Web sitesi">Web sitesi</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="relatedPerson">İlgili Kişi/Profil (opsiyonel)</label>
+                    <input id="relatedPerson" name="relatedPerson" type="text" placeholder="Ad/soyad, kullanıcı adı veya profil adı" />
+                </div>
+                <div class="form-group">
+                    <label for="relatedContact">İletişim/Adres Bilgisi (opsiyonel)</label>
+                    <input id="relatedContact" name="relatedContact" type="text" placeholder="Telefon, e-posta, link veya diğer" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="evidenceLinks">Delil Linkleri (opsiyonel)</label>
+                <textarea id="evidenceLinks" name="evidenceLinks" placeholder="Ekran görüntüsü linkleri, mesaj linkleri, işlem dekontu linkleri vb. (her satıra bir link)"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="description">
+                    İhbar Açıklaması
+                    <span class="required">*</span>
+                </label>
+                <textarea 
+                    id="description" 
+                    name="description" 
+                    placeholder="Olayı tarih/saat, iletişim kanalı, varsa linkler ve objektif bulgularla detaylandırın. Otomatik taslak isterseniz üstteki senaryo alanını kullanabilirsiniz."
+                    required
+                ></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">
+                    Telefon Numarası
+                    <span class="required">*</span>
+                </label>
+                <input 
+                    type="tel" 
+                    id="phone" 
+                    name="phone" 
+                    placeholder="05XX XXX XX XX"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="address">Adres (Opsiyonel)</label>
+                <input 
+                    type="text" 
+                    id="address" 
+                    name="address" 
+                    placeholder="Olayın gerçekleştiği adres..."
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="email">E-posta (Opsiyonel)</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="ornek@email.com"
+                >
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">
+                <i class="fas fa-paper-plane"></i>
+                <span>İhbar Gönder</span>
+            </button>
+
+            <div class="ticket-box" id="ticketBox" style="display:none;">
+                <div style="font-weight: 800; margin-bottom: 6px;">Olay Kaydı Oluşturuldu</div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <span class="status-pill status-NEW" id="ticketStatus">NEW</span>
+                    <span style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">Ticket: <strong id="ticketId">-</strong></span>
+                    <button class="mini-btn" type="button" id="copyTicketBtn"><i class="fas fa-copy"></i> Kopyala</button>
+                </div>
+                <div class="subtle" id="externalInfo"></div>
+            </div>
+        </form>
+
+        <div class="admin-panel">
+            <h3><i class="fas fa-user-shield"></i> Admin: İhbar Listesi</h3>
+            <div class="btn-row" style="margin-bottom: 12px;">
+                <button class="mini-btn" type="button" id="refreshTicketsBtn"><i class="fas fa-rotate"></i> Yenile</button>
+            </div>
+            <div class="subtle" id="adminHint">Bu bölüm giriş gerektirir. Giriş yoksa 401 hatası görebilirsin.</div>
+            <div style="overflow:auto;">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Şehir/İlçe</th>
+                            <th>Kategori</th>
+                            <th>Aciliyet</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ticketsBody">
+                        <tr>
+                            <td colspan="7" style="color: var(--text-muted);">Henüz yüklenmedi</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SCENARIOS = {
+            SIBER: [
+                { id: 'SIBER_PHISH', label: 'Şüpheli e‑posta (phishing) bildirimi' },
+                { id: 'SIBER_LOGIN', label: 'Olağandışı giriş denemeleri / hesap güvenliği' },
+                { id: 'SIBER_LINK', label: 'Sahte bağlantı / yönlendirme şüphesi' },
+                { id: 'SIBER_ACCOUNT', label: 'Hesap ele geçirme şüphesi (şifre değişti/oturumlar kapandı)' },
+                { id: 'SIBER_MALWARE', label: 'Cihaza zararlı yazılım / sahte uygulama şüphesi' },
+                { id: 'SIBER_SOCIAL', label: 'Sosyal medya hesabı taklit/impersonation şüphesi' },
+                { id: 'SIBER_DATA', label: 'Kişisel veri ifşası / sızıntı bildirimi' }
+            ],
+            DOLANDIRICILIK: [
+                { id: 'DOLAND_SMS', label: 'SMS/arama ile kimlik/ödeme talebi' },
+                { id: 'DOLAND_ILAN', label: 'Sahte ilan / kapora talebi şüphesi' },
+                { id: 'DOLAND_QR', label: 'QR/ödeme linki ile yönlendirme şüphesi' },
+                { id: 'DOLAND_IBAN', label: 'IBAN/hesap bilgisi paylaşımı ile ödeme yönlendirmesi' },
+                { id: 'DOLAND_KARGO', label: 'Kargo/teslimat bahanesiyle link/ödeme talebi' },
+                { id: 'DOLAND_IS', label: 'Sahte iş ilanı / ön ödeme / kimlik toplama' },
+                { id: 'DOLAND_DESTEK', label: 'Sahte müşteri hizmetleri / destek hattı' }
+            ],
+            TEHDIT: [
+                { id: 'TEHDIT_MSG', label: 'Online tehdit içerikli mesaj şüphesi' },
+                { id: 'TEHDIT_TACIZ', label: 'Taciz/rahatsız etme bildirimi (online)' },
+                { id: 'TEHDIT_SANTAJ', label: 'Şantaj içerikli mesaj bildirimi (online)' },
+                { id: 'TEHDIT_DOXX', label: 'Doxxing (kişisel bilgileri yayma) tehdidi' },
+                { id: 'TEHDIT_HESAP', label: 'Hesap kapatma/ele geçirme tehdidi (online)' }
+            ],
+            KAYIP: [
+                { id: 'KAYIP_ESYA', label: 'Kayıp eşya (örnek kayıt)' },
+                { id: 'KAYIP_EVR', label: 'Kayıp evrak (örnek kayıt)' },
+                { id: 'KAYIP_CIHAZ', label: 'Kayıp cihaz (örnek kayıt)' }
+            ],
+            DIGER: [
+                { id: 'DIGER_GEN', label: 'Genel bildirim (örnek kayıt)' },
+                { id: 'DIGER_BILGI', label: 'Bilgi talebi (örnek kayıt)' },
+                { id: 'DIGER_SUPHE', label: 'Şüpheli durum bildirimi (örnek kayıt)' },
+                { id: 'DIGER_URUN', label: 'Sahte ürün/satıcı şüphesi (örnek kayıt)' },
+                { id: 'DIGER_PLATFORM', label: 'Platform/servis şikayeti yönlendirme (örnek kayıt)' }
+            ]
+        };
+
+        function pickRandom(arr) {
+            if (!Array.isArray(arr) || arr.length === 0) return null;
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function fmtNow() {
+            const d = new Date();
+            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+
+        function getSelectedCategory() {
+            return (document.getElementById('category')?.value || 'DIGER').toUpperCase();
+        }
+
+        function getSelectedUrgency() {
+            return (document.getElementById('urgency')?.value || 'MEDIUM').toUpperCase();
+        }
+
+        function isScenarioAutoEnabled() {
+            const btn = document.getElementById('scenarioAutoBtn');
+            return btn && btn.dataset.enabled === '1';
+        }
+
+        function setScenarioAutoEnabled(enabled) {
+            const btn = document.getElementById('scenarioAutoBtn');
+            if (!btn) return;
+            btn.dataset.enabled = enabled ? '1' : '0';
+            btn.classList.toggle('active', !!enabled);
+            btn.textContent = enabled ? 'Oto: Açık' : 'Oto: Kapalı';
+        }
+
+        function buildSimulatedDescription(scenarioId, scenarioLabel) {
+            const city = document.getElementById('city')?.value || '—';
+            const district = document.getElementById('district')?.value || '—';
+            const urgency = getSelectedUrgency();
+            const when = fmtNow();
+
+            const incidentTime = document.getElementById('incidentTime')?.value || '';
+            const incidentChannel = document.getElementById('incidentChannel')?.value || '';
+            const relatedPerson = document.getElementById('relatedPerson')?.value || '';
+            const relatedContact = document.getElementById('relatedContact')?.value || '';
+            const evidenceLinks = document.getElementById('evidenceLinks')?.value || '';
+
+            const channels = ['E-posta', 'SMS', 'Telefon', 'Sosyal medya', 'Mesajlaşma uygulaması'];
+            const channel = channels[Math.floor(Math.random() * channels.length)];
+
+            const indicators = [];
+            if (String(scenarioId).includes('ACCOUNT') || String(scenarioId).includes('LOGIN')) {
+                indicators.push('Belirti: Şifre değişikliği bildirimi / bilinmeyen oturumlar / çoklu deneme');
+            }
+            if (String(scenarioId).includes('DATA') || String(scenarioId).includes('DOXX')) {
+                indicators.push('Belirti: Kişisel verilerin paylaşılacağına dair mesaj/tehdit (online)');
+            }
+
+            if (relatedPerson) indicators.push(`İlgili kişi/profil (beyan): ${relatedPerson}`);
+            if (relatedContact) indicators.push(`İletişim/Adres (beyan): ${relatedContact}`);
+            if (incidentChannel) indicators.push(`Kanal (beyan): ${incidentChannel}`);
+            if (incidentTime) indicators.push(`Olay zamanı (beyan): ${incidentTime.replace('T', ' ')}`);
+
+            const base = [
+                `ŞİKAYET TASLAĞI (SIMULASYON)`,
+                `Zaman: ${when}`,
+                `Konum: ${city} / ${district}`,
+                `Kategori: ${getSelectedCategory()} | Aciliyet: ${urgency}`,
+                `Senaryo: ${scenarioLabel} (${scenarioId})`,
+                `Kanal: ${channel}`,
+                `Özet: Olayla ilgili gözlemlediğim bulguları aşağıya madde madde belirtiyorum. Metin otomatik taslaktır; lütfen kendi ifadelerinizle düzeltin.`,
+                `Bulgular/Göstergeler: ${indicators.length ? indicators.join(' | ') : '—'}`,
+                `Delil linkleri (beyan): ${evidenceLinks ? evidenceLinks.split('\n').map(s => s.trim()).filter(Boolean).join(' | ') : '—'}`,
+                `Talep: Kayıt altına alınması ve gerekli görülürse ilgili birimlere yönlendirilmesi.`,
+                `Not: Bu metin simülasyon amaçlı otomatik oluşturulmuştur; otomatik suçlama/ihbar metni değildir.`
+            ];
+
+            return base.join('\n');
+        }
+
+        function updateScenarioOptions() {
+            const category = getSelectedCategory();
+            const select = document.getElementById('scenarioSelect');
+            if (!select) return;
+
+            const options = SCENARIOS[category] || SCENARIOS.DIGER;
+            const current = select.value;
+            select.innerHTML = '<option value="">Senaryo seçin...</option>';
+            options.forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.id;
+                opt.textContent = o.label;
+                select.appendChild(opt);
+            });
+            if (current) {
+                const exists = Array.from(select.options).some(op => op.value === current);
+                if (exists) select.value = current;
+            }
+        }
+
+        function autofillFromScenario(forcePick = false) {
+            const category = getSelectedCategory();
+            const options = SCENARIOS[category] || SCENARIOS.DIGER;
+            const select = document.getElementById('scenarioSelect');
+            const desc = document.getElementById('description');
+            if (!desc) return;
+
+            let scenario = null;
+            if (select && select.value) {
+                scenario = options.find(o => o.id === select.value) || null;
+            }
+            if (!scenario && forcePick) {
+                scenario = pickRandom(options);
+                if (scenario && select) select.value = scenario.id;
+            }
+            if (!scenario) return;
+
+            desc.value = buildSimulatedDescription(scenario.id, scenario.label);
+        }
+
+        function setActiveChip(containerEl, value, hiddenInputId) {
+            const buttons = Array.from(containerEl.querySelectorAll('button[data-value]'));
+            buttons.forEach(b => b.classList.toggle('active', b.dataset.value === value));
+            const hidden = document.getElementById(hiddenInputId);
+            if (hidden) hidden.value = value;
+        }
+
+        (function initChips() {
+            const scenarioFillBtn = document.getElementById('scenarioFillBtn');
+            const scenarioAutoBtn = document.getElementById('scenarioAutoBtn');
+            const scenarioSelect = document.getElementById('scenarioSelect');
+            const catWrap = document.getElementById('categoryButtons');
+            const urgWrap = document.getElementById('urgencyButtons');
+
+            setScenarioAutoEnabled(true);
+            updateScenarioOptions();
+
+            if (scenarioAutoBtn) {
+                scenarioAutoBtn.addEventListener('click', () => {
+                    setScenarioAutoEnabled(!isScenarioAutoEnabled());
+                    if (isScenarioAutoEnabled()) autofillFromScenario(true);
+                });
+            }
+            if (scenarioFillBtn) {
+                scenarioFillBtn.addEventListener('click', () => {
+                    autofillFromScenario(true);
+                });
+            }
+            if (scenarioSelect) {
+                scenarioSelect.addEventListener('change', () => {
+                    if (isScenarioAutoEnabled()) autofillFromScenario(false);
+                });
+            }
+            if (catWrap) {
+                setActiveChip(catWrap, 'SIBER', 'category');
+                catWrap.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-value]');
+                    if (!btn) return;
+                    setActiveChip(catWrap, btn.dataset.value, 'category');
+                    updateScenarioOptions();
+                    if (isScenarioAutoEnabled()) autofillFromScenario(true);
+                });
+            }
+            if (urgWrap) {
+                setActiveChip(urgWrap, 'MEDIUM', 'urgency');
+                urgWrap.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-value]');
+                    if (!btn) return;
+                    setActiveChip(urgWrap, btn.dataset.value, 'urgency');
+                    if (isScenarioAutoEnabled()) autofillFromScenario(false);
+                });
+            }
+        })();
+
+        document.getElementById('ihbarForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Hide alerts
+            successAlert.classList.remove('show');
+            errorAlert.classList.remove('show');
+            
+            // Disable button and show spinner
+            submitBtn.disabled = true;
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="spinner"></div><span>Gönderiliyor...</span>';
+            
+            // Get form data
+            const data = {
+                category: document.getElementById('category').value,
+                urgency: document.getElementById('urgency').value,
+                description: document.getElementById('description').value.trim(),
+                city: document.getElementById('city').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                address: document.getElementById('address').value.trim(),
+                email: document.getElementById('email').value.trim()
+            };
+            
+            try {
+                const response = await fetch('/api/ihbar/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    successAlert.classList.add('show');
+                    const ticketBox = document.getElementById('ticketBox');
+                    const ticketIdEl = document.getElementById('ticketId');
+                    const ticketStatusEl = document.getElementById('ticketStatus');
+                    const externalInfo = document.getElementById('externalInfo');
+                    const successMessage = document.getElementById('successMessage');
+
+                    if (successMessage) successMessage.textContent = result.message || 'İhbar kaydı oluşturuldu!';
+                    if (ticketIdEl) ticketIdEl.textContent = result.ticket_id || '-';
+                    if (ticketStatusEl) {
+                        const st = result.status || 'NEW';
+                        ticketStatusEl.textContent = st;
+                        ticketStatusEl.className = `status-pill status-${st}`;
+                    }
+                    if (externalInfo) {
+                        if (result.external && result.external.attempted) {
+                            externalInfo.textContent = result.external.ok ? 'Harici gönderim denendi: başarılı.' : `Harici gönderim denendi: başarısız (${result.external.status_code || result.external.error || 'hata'})`;
+                        } else {
+                            externalInfo.textContent = 'Harici gönderim kapalı. Kayıt sistem içinde oluşturuldu.';
+                        }
+                    }
+                    if (ticketBox) ticketBox.style.display = 'block';
+                    document.getElementById('ihbarForm').reset();
+                } else {
+                    errorMessage.textContent = result.error || 'Bir hata oluştu.';
+                    errorAlert.classList.add('show');
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Bağlantı hatası. Lütfen internet bağlantınızı kontrol edin.';
+                errorAlert.classList.add('show');
+            } finally {
+                // Restore button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalContent;
+            }
+        });
+
+        document.getElementById('copyTicketBtn').addEventListener('click', async function() {
+            const ticketId = (document.getElementById('ticketId')?.textContent || '').trim();
+            if (!ticketId || ticketId === '-') return;
+            try {
+                await navigator.clipboard.writeText(ticketId);
+            } catch (e) {
+                const temp = document.createElement('textarea');
+                temp.value = ticketId;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                temp.remove();
+            }
+        });
+
+        async function loadTickets() {
+            const body = document.getElementById('ticketsBody');
+            const hint = document.getElementById('adminHint');
+            if (!body) return;
+
+            body.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">Yükleniyor...</td></tr>';
+            try {
+                const res = await fetch('/api/admin/ihbar/list?limit=100');
+                if (res.status === 401) {
+                    if (hint) hint.textContent = '401: Bu listeyi görmek için giriş gerekli.';
+                    body.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">Giriş gerekli</td></tr>';
+                    return;
+                }
+                const data = await res.json();
+                if (!data.success) {
+                    body.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">Yüklenemedi</td></tr>';
+                    return;
+                }
+                const tickets = Array.isArray(data.tickets) ? data.tickets : [];
+                if (tickets.length === 0) {
+                    body.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">Kayıt yok</td></tr>';
+                    return;
+                }
+
+                body.innerHTML = tickets.map(t => {
+                    const st = (t.status || 'NEW').toUpperCase();
+                    return `
+                        <tr>
+                            <td><strong>${t.ticket_id}</strong></td>
+                            <td>${t.city || ''} / ${t.district || ''}</td>
+                            <td>${t.category || '-'}</td>
+                            <td>${t.urgency || '-'}</td>
+                            <td><span class="status-pill status-${st}">${st}</span></td>
+                            <td>${t.created_at || '-'}</td>
+                            <td>
+                                <div class="btn-row">
+                                    <button class="mini-btn" data-action="IN_REVIEW" data-ticket="${t.ticket_id}" type="button">İncelemede</button>
+                                    <button class="mini-btn" data-action="ESCALATED" data-ticket="${t.ticket_id}" type="button">İletildi</button>
+                                    <button class="mini-btn" data-action="CLOSED" data-ticket="${t.ticket_id}" type="button">Kapat</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="7" style="color: var(--text-muted);">Bağlantı hatası</td></tr>';
+            }
+        }
+
+        document.getElementById('refreshTicketsBtn').addEventListener('click', loadTickets);
+        document.getElementById('ticketsBody').addEventListener('click', async function(e) {
+            const btn = e.target.closest('button[data-action][data-ticket]');
+            if (!btn) return;
+            const ticketId = btn.dataset.ticket;
+            const status = btn.dataset.action;
+            try {
+                const res = await fetch('/api/admin/ihbar/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_id: ticketId, status })
+                });
+                if (res.status === 401) {
+                    alert('Giriş gerekli');
+                    return;
+                }
+                const data = await res.json();
+                if (!data.success) {
+                    alert(data.error || 'Güncellenemedi');
+                    return;
+                }
+                await loadTickets();
+            } catch (err) {
+                alert('Bağlantı hatası');
+            }
+        });
+
+        loadTickets();
+    </script>
+</body>
+</html>
