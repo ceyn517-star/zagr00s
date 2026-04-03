@@ -29,20 +29,42 @@ SESSION_SECRET_KEY = os.environ.get(
 )
 
 FINDCORD_AUTH_TOKEN = os.environ.get('ZAGROS_FINDCORD_AUTH_TOKEN', '')
-ALLOWED_CORS_ORIGINS = [
-    o.strip() for o in os.environ.get('ZAGROS_CORS_ORIGINS', 'http://localhost:5000,http://127.0.0.1:5000').split(',')
-    if o.strip()
-]
+
+# CORS - Allow all origins if not specified (for deployment flexibility)
+cors_origins_env = os.environ.get('ZAGROS_CORS_ORIGINS', '')
+if cors_origins_env:
+    ALLOWED_CORS_ORIGINS = [o.strip() for o in cors_origins_env.split(',') if o.strip()]
+else:
+    # Allow all origins in production
+    ALLOWED_CORS_ORIGINS = '*'
 
 REQUIRE_IHBAR_AUTH = os.environ.get('ZAGROS_REQUIRE_IHBAR_AUTH', '0') == '1'
 
 def login_required(f):
-    """Decorator to require authentication for routes"""
+    """Decorator to require authentication for routes - supports both session and token auth"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('authenticated'):
-            return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
-        return f(*args, **kwargs)
+        # Check session first
+        if session.get('authenticated'):
+            return f(*args, **kwargs)
+        
+        # Check Authorization header for token-based auth (for production)
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            # Simple token validation - compare with password hash
+            if token == SYSTEM_PASSWORD_HASH:
+                return f(*args, **kwargs)
+        
+        # Also check X-Auth-Token header
+        token = request.headers.get('X-Auth-Token', '')
+        if token:
+            import hashlib
+            token_hash = hashlib.sha256(token.encode()).hexdigest()
+            if token_hash == SYSTEM_PASSWORD_HASH:
+                return f(*args, **kwargs)
+        
+        return jsonify({'error': 'Authentication required', 'redirect': '/login'}), 401
     return decorated_function
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -51,13 +73,16 @@ app.secret_key = SESSION_SECRET_KEY
 # Secure session cookie defaults (dev-friendly; set HTTPS to enable Secure cookies)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SAMESITE='None',  # Allow cross-site cookies for deployment
 )
 if os.environ.get('ZAGROS_COOKIE_SECURE', '0') == '1':
     app.config['SESSION_COOKIE_SECURE'] = True
 
-# Restrict CORS to allowed origins
-CORS(app, origins=ALLOWED_CORS_ORIGINS, supports_credentials=True)
+# CORS configuration - use wildcard without credentials for production
+if ALLOWED_CORS_ORIGINS == '*':
+    CORS(app, origins='*', supports_credentials=False)
+else:
+    CORS(app, origins=ALLOWED_CORS_ORIGINS, supports_credentials=True)
 
 # Initialize OSINT module
 osint = EmailOSINT()

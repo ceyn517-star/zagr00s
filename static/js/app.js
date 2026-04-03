@@ -15,6 +15,31 @@ function debugError(...args) {
     if (DEBUG_UI) console.error(...args);
 }
 
+// Helper to get auth headers for all API requests
+function getAuthHeaders() {
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    const token = localStorage.getItem('zargos_auth_token');
+    if (token) {
+        headers['X-Auth-Token'] = token;
+    }
+    return headers;
+}
+
+// Wrapper for fetch with auth
+function authFetch(url, options = {}) {
+    const token = localStorage.getItem('zargos_auth_token');
+    if (!options.headers) {
+        options.headers = {};
+    }
+    options.headers['Content-Type'] = 'application/json';
+    if (token) {
+        options.headers['X-Auth-Token'] = token;
+    }
+    return fetch(url, options);
+}
+
 // Helper function to clean/normalize IP addresses
 function cleanIP(ip) {
     if (!ip) return null;
@@ -144,7 +169,7 @@ async function loadAdminIhbarList() {
     if (!body) return;
     body.innerHTML = '<tr><td colspan="6" style="padding:10px; color: var(--text-muted);">Yükleniyor...</td></tr>';
     try {
-        const res = await fetch('/api/admin/ihbar/list?limit=50');
+        const res = await authFetch('/api/admin/ihbar/list?limit=50');
         if (res.status === 401) {
             body.innerHTML = '<tr><td colspan="6" style="padding:10px; color: var(--text-muted);">Giriş gerekli (401)</td></tr>';
             return;
@@ -313,7 +338,7 @@ function setupEventListeners() {
 
 async function loadStats() {
     try {
-        const response = await fetch(`${API_BASE}/api/stats`);
+        const response = await authFetch(`${API_BASE}/api/stats`);
         const data = await response.json();
         const el = document.getElementById('totalRecords');
         if (el) el.textContent = data.total_records?.toLocaleString() || '-';
@@ -324,7 +349,7 @@ async function loadStats() {
 
 async function loadFileStatus() {
     try {
-        const response = await fetch(`${API_BASE}/api/import/status`);
+        const response = await authFetch(`${API_BASE}/api/import/status`);
         const data = await response.json();
         const filesList = document.getElementById('filesList');
         if (!filesList) return;
@@ -361,9 +386,8 @@ async function performVesikaSearch() {
     hideResults();
 
     try {
-        const response = await fetch(`${API_BASE}/api/vesika`, {
+        const response = await authFetch(`${API_BASE}/api/vesika`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tc: tcNo })
         });
         
@@ -409,9 +433,8 @@ async function performFullTcSearch() {
     hideResults();
 
     try {
-        const response = await fetch(`${API_BASE}/api/tc/full-search`, {
+        const response = await authFetch(`${API_BASE}/api/tc/full-search`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tc: tcNo })
         });
         
@@ -803,9 +826,8 @@ async function performIntegratedSearch() {
         window.__lastDiscordId = discordId;
 
         // Step 1: Search by ID
-        const idResponse = await fetch(`${API_BASE}/api/search`, {
+        const idResponse = await authFetch(`${API_BASE}/api/search`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discord_id: discordId })
         });
         const idData = await idResponse.json();
@@ -824,9 +846,8 @@ async function performIntegratedSearch() {
             const reports = [];
             for (const email of emailsToCheck) {
                 try {
-                    const osintResponse = await fetch(`${API_BASE}/api/osint/email`, {
+                    const osintResponse = await authFetch(`${API_BASE}/api/osint/email`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email })
                     });
                     const report = await osintResponse.json();
@@ -1407,7 +1428,7 @@ function displayFindcordResults(findcordData) {
                     <td style="padding: 12px 15px;">
                         <div style="padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f8fafc;">
                             <div style="color: #111827; font-weight: 600;">${text || 'Bilinmiyor'}</div>
-                            ${state ? `<div style=\"color: #6b7280; margin-top: 2px;\">${state}</div>` : ''}
+                            ${state ? `<div style="color: #6b7280; margin-top: 2px;">${state}</div>` : ''}
                         </div>
                     </td>
                 </tr>
@@ -1585,7 +1606,7 @@ async function uploadFile(file) {
     formData.append('file', file);
 
     try {
-        const response = await fetch(`${API_BASE}/api/upload`, {
+        const response = await authFetch(`${API_BASE}/api/upload`, {
             method: 'POST',
             body: formData
         });
@@ -1616,9 +1637,8 @@ async function fetchIPInfo(ip) {
     ipInfoGrid.innerHTML = '<div class="ip-info-item"><span>IP bilgisi yükleniyor...</span></div>';
     
     try {
-        const response = await fetch(`${API_BASE}/api/osint/ip`, {
+        const response = await authFetch(`${API_BASE}/api/osint/ip`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ip: ip })
         });
         
@@ -1680,9 +1700,8 @@ async function fetchLocationForIP(ip, element) {
     if (!element) return;
     
     try {
-        const response = await fetch(`${API_BASE}/api/osint/ip`, {
+        const response = await authFetch(`${API_BASE}/api/osint/ip`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ip: ip })
         });
         
@@ -1723,9 +1742,8 @@ async function generateFullReport(discordId) {
     showLoading();
     
     try {
-        const response = await fetch(`${API_BASE}/api/osint/full-report`, {
+        const response = await authFetch(`${API_BASE}/api/osint/full-report`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ discord_id: discordId })
         });
         
@@ -2033,7 +2051,7 @@ function displayFindcordDetailedResults(findcordData) {
                 <td style="padding: 12px 15px;">
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         ${findcordData.recent_dms.map(dm => `
-                            <div style="background: #f8f9ff; padding: 10px; border-radius: 6px; font-size: 12px; border-left: 3px solid #5865F2; display: flex; align-items: center; gap: 10px;">
+                            <div style="background: #f8f9ff; padding: 10px; border-radius: 6px; border-left: 3px solid #5865F2; display: flex; align-items: center; gap: 10px;">
                                 <img src="${dm.avatar || 'https://cdn.discordapp.com/embed/avatars/0.png'}" style="width: 32px; height: 32px; border-radius: 50%;" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
                                 <div style="flex: 1;">
                                     <strong>${dm.username || 'Bilinmiyor'}</strong>
@@ -2383,7 +2401,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loginError = document.getElementById('loginError');
     
     // Check if already authenticated
-    fetch('/api/auth/check')
+    authFetch('/api/auth/check')
         .then(response => response.json())
         .then(data => {
             if (data.authenticated) {
@@ -2416,16 +2434,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        fetch('/api/auth/login', {
+        authFetch('/api/auth/login', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify({ password: password })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Store password hash for token-based auth (for production/cross-origin)
+                localStorage.setItem('zargos_auth_token', password);
                 loginModal.style.display = 'none';
             } else {
                 showError('Hatalı şifre!');
@@ -2466,11 +2483,8 @@ document.addEventListener('DOMContentLoaded', function() {
         loadBtn.disabled = true;
         
         try {
-            const response = await fetch('/api/discord-friends', {
+            const response = await authFetch('/api/discord-friends', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ discord_id: discordId })
             });
             
