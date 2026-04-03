@@ -1782,6 +1782,11 @@ async function generateFullReport(discordId) {
             displayFindcordDetailedResults(data.findcord.data);
         }
         
+        // Display close friends in full report
+        if (data.close_friends && data.close_friends.length > 0) {
+            displayCloseFriendsInReport(data.close_friends);
+        }
+        
     } catch (error) {
         debugError('Full report error:', error);
         console.error('Full report error details:', error);
@@ -1789,6 +1794,60 @@ async function generateFullReport(discordId) {
     } finally {
         hideLoading();
     }
+}
+
+// Display close friends in full report
+function displayCloseFriendsInReport(closeFriends) {
+    const container = document.getElementById('closeFriendsReportSection');
+    if (!container) return;
+    
+    container.style.display = 'block';
+    
+    let html = `
+        <div class="section-header">
+            <i class="fas fa-user-friends"></i>
+            <span>Yakın Arkadaşlar (${closeFriends.length})</span>
+        </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Discord ID</th>
+                        <th>Kullanıcı Adı</th>
+                        <th>Email</th>
+                        <th>IP</th>
+                        <th>İlişki</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    closeFriends.forEach(friend => {
+        const emailHtml = friend.friend_email 
+            ? `<a href="mailto:${friend.friend_email}" style="color: #60a5fa;">${friend.friend_email}</a>`
+            : '<span style="color: #666;">-</span>';
+        const ipHtml = friend.friend_ip 
+            ? `<span style="font-family: monospace; color: #fbbf24;">${friend.friend_ip}</span>`
+            : '<span style="color: #666;">-</span>';
+        const usernameHtml = friend.friend_username 
+            ? `<span style="color: #4ade80;">${friend.friend_username}</span>`
+            : '<span style="color: #666;">-</span>';
+        
+        html += `
+            <tr>
+                <td style="font-family: monospace; font-size: 11px; color: #60a5fa;">${friend.friend_id}</td>
+                <td>${usernameHtml}</td>
+                <td>${emailHtml}</td>
+                <td>${ipHtml}</td>
+                <td><span class="status-badge" style="background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4);">${friend.relationship_type || 'close'}</span></td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    
+    const contentDiv = container.querySelector('.section-content') || container;
+    contentDiv.innerHTML = html;
 }
 
 // Display IP info from full report

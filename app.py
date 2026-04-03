@@ -417,6 +417,52 @@ def audit_log(event_type, details=None):
     except Exception:
         pass
 
+# SQL file URLs from Google Drive
+SQL_FILES = {
+    'foxnet': {
+        'url': 'https://drive.google.com/uc?export=download&id=1xestZYts7oTlAI-ECNvi3HQmZsMVeIM5',
+        'filename': '270k_data.sql',
+        'table': 'foxnet_data'
+    },
+    'discord': {
+        'url': 'https://drive.google.com/uc?export=download&id=1O13yXcjo7ToQTDkY9a4OtZTylx94EreI',
+        'filename': 'discord_data.sql',
+        'table': 'discord_mariadb'
+    },
+    'five_sql': {
+        'url': 'https://drive.google.com/uc?export=download&id=1x2VPFN3Or5845LRdKjxAgJx0noYpZoCX',
+        'filename': '5.sql',
+        'table': 'five_sql_data'
+    }
+}
+
+def download_sql_files():
+    """Download SQL files from Google Drive if not exists"""
+    import os
+    data_dir = os.path.join(os.path.dirname(__file__), 'sql_data')
+    os.makedirs(data_dir, exist_ok=True)
+    
+    for key, info in SQL_FILES.items():
+        filepath = os.path.join(data_dir, info['filename'])
+        if os.path.exists(filepath):
+            print(f"[✓] {info['filename']} already exists ({os.path.getsize(filepath)} bytes)")
+            continue
+        
+        print(f"[i] Downloading {info['filename']} from Google Drive...")
+        try:
+            response = requests.get(info['url'], stream=True, timeout=300)
+            if response.status_code == 200:
+                with open(filepath, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                print(f"[✓] Downloaded {info['filename']} ({os.path.getsize(filepath)} bytes)")
+            else:
+                print(f"[✗] Failed to download {info['filename']}: HTTP {response.status_code}")
+        except Exception as e:
+            print(f"[✗] Error downloading {info['filename']}: {e}")
+    
+    return data_dir
+
 def init_database():
     """Initialize the unified database with tables for all 3 sources"""
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
@@ -1467,7 +1513,60 @@ def full_osint_report():
             'note': 'API bağlantı hatası'
         }
     
-    # 7. Generate summary
+    # 7. Get close friends from database
+    close_friends = []
+    try:
+        conn = get_db_connection()
+        cursor = conn.execute('''
+            SELECT friend_id, friend_username, friend_discriminator, friend_email, friend_ip, friend_avatar, relationship_type
+            FROM discord_friends 
+            WHERE discord_id = ?
+            ORDER BY created_at DESC
+        ''', (discord_id,))
+        
+        all_friends = [dict(row) for row in cursor.fetchall()]
+        
+        # Enrich friends with email/IP from database
+        for friend in all_friends:
+            if not friend.get('friend_email') or not friend.get('friend_ip'):
+                cursor = conn.execute('''
+                    SELECT email, ip, username FROM foxnet_data WHERE discord_id = ?
+                    UNION ALL
+                    SELECT email, ip, username FROM five_sql_data WHERE discord_id = ?
+                    UNION ALL
+                    SELECT email, ip, username FROM discord_mariadb WHERE discord_id = ?
+                    LIMIT 1
+                ''', (friend['friend_id'], friend['friend_id'], friend['friend_id']))
+                result = cursor.fetchone()
+                if result:
+                    if not friend.get('friend_email') and result[0]:
+                        friend['friend_email'] = result[0]
+                    if not friend.get('friend_ip') and result[1]:
+                        friend['friend_ip'] = result[1]
+                    if not friend.get('friend_username') and result[2]:
+                        friend['friend_username'] = result[2]
+        
+        # Filter close friends
+        def is_close_friend(rel_type):
+            if rel_type is None:
+                return False
+            v = str(rel_type).strip().lower()
+            return (
+                v in {'close_friend', 'close-friend', 'best_friend', 'best-friend', 'favorite', 'favourite', 'close', 'best'}
+                or 'close' in v
+                or 'best' in v
+                or 'favorite' in v
+            )
+        
+        close_friends = [f for f in all_friends if is_close_friend(f.get('relationship_type'))]
+        conn.close()
+    except Exception as e:
+        print(f"[DEBUG] Error fetching close friends: {e}")
+    
+    report['close_friends'] = close_friends
+    report['all_friends'] = all_friends if 'all_friends' in dir() else []
+    
+    # 8. Generate summary
     risk_factors = []
     if report['database_results']['total_records'] > 0:
         risk_factors.append(f"{report['database_results']['total_records']} database records found")
@@ -2745,6 +2844,26 @@ def get_discord_friends():
         
         existing_friends = [dict(row) for row in cursor.fetchall()]
         
+        # Enrich friends with email/IP data from database
+        for friend in existing_friends:
+            if not friend.get('friend_email') or not friend.get('friend_ip'):
+                cursor = conn.execute('''
+                    SELECT email, ip, username FROM foxnet_data WHERE discord_id = ?
+                    UNION ALL
+                    SELECT email, ip, username FROM five_sql_data WHERE discord_id = ?
+                    UNION ALL
+                    SELECT email, ip, username FROM discord_mariadb WHERE discord_id = ?
+                    LIMIT 1
+                ''', (friend['friend_id'], friend['friend_id'], friend['friend_id']))
+                result = cursor.fetchone()
+                if result:
+                    if not friend.get('friend_email') and result[0]:
+                        friend['friend_email'] = result[0]
+                    if not friend.get('friend_ip') and result[1]:
+                        friend['friend_ip'] = result[1]
+                    if not friend.get('friend_username') and result[2]:
+                        friend['friend_username'] = result[2]
+        
         if existing_friends:
             close_friends = [f for f in existing_friends if _is_close_friend(f.get('relationship_type'))]
             # Return cached data
@@ -2889,6 +3008,8 @@ def get_discord_friends():
 
 
 # Initialize database and data on module load (for gunicorn/production)
+print("[i] Starting initialization...")
+download_sql_files()  # Download SQL files from Google Drive
 init_database()
 init_turkey_data()
 print("[✓] Database initialized")
