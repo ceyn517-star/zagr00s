@@ -2440,9 +2440,9 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                // Store password hash for token-based auth (for production/cross-origin)
-                localStorage.setItem('zargos_auth_token', password);
+            if (data.success && data.token) {
+                // Store token from server response for token-based auth
+                localStorage.setItem('zargos_auth_token', data.token);
                 loginModal.style.display = 'none';
             } else {
                 showError('Hatalı şifre!');

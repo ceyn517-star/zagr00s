@@ -754,7 +754,7 @@ def init_turkey_data():
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    """Authenticate user with password"""
+    """Authenticate user with password - returns token for API auth"""
     data = request.get_json()
     password = data.get('password', '')
     
@@ -767,7 +767,8 @@ def login():
         audit_log('auth_login_success', {'ip': request.remote_addr})
         return jsonify({
             'success': True,
-            'message': 'Login successful'
+            'message': 'Login successful',
+            'token': password  # Return password as token for API auth
         })
     else:
         audit_log('auth_login_failed', {'ip': request.remote_addr})
