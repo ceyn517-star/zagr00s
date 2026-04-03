@@ -2434,8 +2434,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        authFetch('/api/auth/login', {
+        fetch('/api/auth/login', {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({ password: password })
         })
         .then(response => response.json())
