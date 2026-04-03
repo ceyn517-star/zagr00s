@@ -2888,9 +2888,12 @@ def get_discord_friends():
         })
 
 
+# Initialize database and data on module load (for gunicorn/production)
+init_database()
+init_turkey_data()
+print("[✓] Database initialized")
+
 if __name__ == '__main__':
-    init_database()
-    init_turkey_data()  # Load Turkey cities/districts data
     print("[✓] Starting Discord Data Search API...")
     print("[i] Access the web interface at: http://localhost:5000")
     debug_mode = os.environ.get('ZAGROS_DEBUG', '0') == '1'
