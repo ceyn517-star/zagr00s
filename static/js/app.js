@@ -1782,10 +1782,8 @@ async function generateFullReport(discordId) {
             displayFindcordDetailedResults(data.findcord.data);
         }
         
-        // Display close friends in full report
-        if (data.close_friends && data.close_friends.length > 0) {
-            displayCloseFriendsInReport(data.close_friends);
-        }
+        // Display close friends in full report (always show section)
+        displayCloseFriendsInReport(data.close_friends || []);
         
     } catch (error) {
         debugError('Full report error:', error);
