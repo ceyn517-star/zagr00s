@@ -1804,50 +1804,63 @@ function displayCloseFriendsInReport(closeFriends) {
     container.style.display = 'block';
     
     let html = `
-        <div class="section-header">
-            <i class="fas fa-user-friends"></i>
-            <span>Yakın Arkadaşlar (${closeFriends.length})</span>
+        <div class="section-header" style="background: rgba(251,191,36,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <i class="fas fa-user-friends" style="color: #fbbf24;"></i>
+            <span style="font-weight: bold; font-size: 16px;">Yakın Arkadaşlar</span>
+            <span style="color: #fbbf24; margin-left: 10px;">(${closeFriends.length})</span>
         </div>
-        <div class="table-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Discord ID</th>
-                        <th>Kullanıcı Adı</th>
-                        <th>Email</th>
-                        <th>IP</th>
-                        <th>İlişki</th>
-                    </tr>
-                </thead>
-                <tbody>
     `;
     
-    closeFriends.forEach(friend => {
-        const emailHtml = friend.friend_email 
-            ? `<a href="mailto:${friend.friend_email}" style="color: #60a5fa;">${friend.friend_email}</a>`
-            : '<span style="color: #666;">-</span>';
-        const ipHtml = friend.friend_ip 
-            ? `<span style="font-family: monospace; color: #fbbf24;">${friend.friend_ip}</span>`
-            : '<span style="color: #666;">-</span>';
-        const usernameHtml = friend.friend_username 
-            ? `<span style="color: #4ade80;">${friend.friend_username}</span>`
-            : '<span style="color: #666;">-</span>';
-        
+    if (!closeFriends || closeFriends.length === 0) {
         html += `
-            <tr>
-                <td style="font-family: monospace; font-size: 11px; color: #60a5fa;">${friend.friend_id}</td>
-                <td>${usernameHtml}</td>
-                <td>${emailHtml}</td>
-                <td>${ipHtml}</td>
-                <td><span class="status-badge" style="background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4);">${friend.relationship_type || 'close'}</span></td>
-            </tr>
+            <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; text-align: center;">
+                <i class="fas fa-user-slash" style="font-size: 32px; color: #666; margin-bottom: 10px;"></i>
+                <p style="color: #888; margin: 0;">Bu kullanıcı için yakın arkadaş bulunamadı.</p>
+                <p style="color: #666; font-size: 12px; margin-top: 5px;">Findcord'da yakın arkadaş etiketi yok veya arkadaş listesi gizli.</p>
+            </div>
         `;
-    });
+    } else {
+        html += `
+            <div class="table-container" style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 15px;">
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(251,191,36,0.3);">
+                            <th style="padding: 12px; text-align: left; color: #fbbf24;">Discord ID</th>
+                            <th style="padding: 12px; text-align: left; color: #fbbf24;">Kullanıcı Adı</th>
+                            <th style="padding: 12px; text-align: left; color: #fbbf24;">Email</th>
+                            <th style="padding: 12px; text-align: left; color: #fbbf24;">IP</th>
+                            <th style="padding: 12px; text-align: left; color: #fbbf24;">İlişki</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        closeFriends.forEach(friend => {
+            const emailHtml = friend.friend_email 
+                ? `<a href="mailto:${friend.friend_email}" style="color: #60a5fa;">${friend.friend_email}</a>`
+                : '<span style="color: #888; font-style: italic;">Bulunamadı</span>';
+            const ipHtml = friend.friend_ip 
+                ? `<span style="font-family: monospace; color: #fbbf24;">${friend.friend_ip}</span>`
+                : '<span style="color: #888; font-style: italic;">Bulunamadı</span>';
+            const usernameHtml = friend.friend_username 
+                ? `<span style="color: #4ade80;">${friend.friend_username}</span>`
+                : '<span style="color: #888; font-style: italic;">Bulunamadı</span>';
+            
+            html += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <td style="padding: 12px; font-family: monospace; font-size: 11px; color: #60a5fa;">${friend.friend_id}</td>
+                    <td style="padding: 12px;">${usernameHtml}</td>
+                    <td style="padding: 12px;">${emailHtml}</td>
+                    <td style="padding: 12px;">${ipHtml}</td>
+                    <td style="padding: 12px;"><span class="status-badge" style="background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.4); padding: 4px 8px; border-radius: 4px; font-size: 11px;">${friend.relationship_type || 'close'}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+    }
     
-    html += '</tbody></table></div>';
-    
-    const contentDiv = container.querySelector('.section-content') || container;
-    contentDiv.innerHTML = html;
+    container.innerHTML = html;
 }
 
 // Display IP info from full report
