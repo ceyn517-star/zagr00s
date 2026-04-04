@@ -1513,8 +1513,9 @@ def full_osint_report():
             'note': 'API bağlantı hatası'
         }
     
-    # 7. Get close friends from database
+    # 7. Get close friends from database or Findcord API
     close_friends = []
+    all_friends = []
     try:
         conn = get_db_connection()
         cursor = conn.execute('''
@@ -1526,7 +1527,71 @@ def full_osint_report():
         
         all_friends = [dict(row) for row in cursor.fetchall()]
         
-        # Enrich friends with email/IP from database
+        # If no friends in database, fetch from Findcord API
+        if not all_friends and FINDCORD_AUTH_TOKEN:
+            try:
+                friends_url = f"https://app.findcord.com/api/user/{discord_id}/friends"
+                headers = {
+                    'Authorization': FINDCORD_AUTH_TOKEN,
+                    'User-Agent': 'Mozilla/5.0',
+                    'Accept': 'application/json'
+                }
+                resp = requests.get(friends_url, headers=headers, timeout=15)
+                if resp.status_code == 200:
+                    friends_data = resp.json()
+                    if friends_data.get('success') and friends_data.get('friends'):
+                        for friend in friends_data['friends']:
+                            friend_id = friend.get('id')
+                            if friend_id:
+                                # Get email/IP from database
+                                friend_email = friend.get('email')
+                                friend_ip = None
+                                friend_username = friend.get('username')
+                                
+                                cursor = conn.execute('''
+                                    SELECT email, ip, username FROM foxnet_data WHERE discord_id = ?
+                                    UNION ALL
+                                    SELECT email, ip, username FROM five_sql_data WHERE discord_id = ?
+                                    UNION ALL
+                                    SELECT email, ip, username FROM discord_mariadb WHERE discord_id = ?
+                                    LIMIT 1
+                                ''', (friend_id, friend_id, friend_id))
+                                result = cursor.fetchone()
+                                if result:
+                                    if not friend_email and result[0]:
+                                        friend_email = result[0]
+                                    if not friend_ip and result[1]:
+                                        friend_ip = result[1]
+                                    if not friend_username and result[2]:
+                                        friend_username = result[2]
+                                
+                                # Store in database
+                                conn.execute('''
+                                    INSERT OR REPLACE INTO discord_friends 
+                                    (discord_id, friend_id, friend_username, friend_discriminator, 
+                                     friend_email, friend_ip, friend_avatar, relationship_type, updated_at)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                                ''', (
+                                    discord_id, friend_id, friend_username, friend.get('discriminator'),
+                                    friend_email, friend_ip, friend.get('avatar'),
+                                    friend.get('relationship_type', friend.get('type', 'friend'))
+                                ))
+                                
+                                all_friends.append({
+                                    'friend_id': friend_id,
+                                    'friend_username': friend_username,
+                                    'friend_discriminator': friend.get('discriminator'),
+                                    'friend_email': friend_email,
+                                    'friend_ip': friend_ip,
+                                    'friend_avatar': friend.get('avatar'),
+                                    'relationship_type': friend.get('relationship_type', friend.get('type', 'friend'))
+                                })
+                        conn.commit()
+                        print(f"[✓] Fetched {len(all_friends)} friends from Findcord API")
+            except Exception as e:
+                print(f"[DEBUG] Findcord friends API error: {e}")
+        
+        # Enrich existing friends with email/IP from database
         for friend in all_friends:
             if not friend.get('friend_email') or not friend.get('friend_ip'):
                 cursor = conn.execute('''
@@ -1564,7 +1629,7 @@ def full_osint_report():
         print(f"[DEBUG] Error fetching close friends: {e}")
     
     report['close_friends'] = close_friends
-    report['all_friends'] = all_friends if 'all_friends' in dir() else []
+    report['all_friends'] = all_friends
     
     # 8. Generate summary
     risk_factors = []
