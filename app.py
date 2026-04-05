@@ -437,25 +437,52 @@ SQL_FILES = {
 }
 
 def download_sql_files():
-    """Download SQL files from Google Drive if not exists"""
+    """Download SQL files from Google Drive if not exists (handles large file warnings)"""
     import os
     data_dir = os.path.join(os.path.dirname(__file__), 'sql_data')
     os.makedirs(data_dir, exist_ok=True)
     
+    session = requests.Session()
+    
     for key, info in SQL_FILES.items():
         filepath = os.path.join(data_dir, info['filename'])
-        if os.path.exists(filepath):
-            print(f"[✓] {info['filename']} already exists ({os.path.getsize(filepath)} bytes)")
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 10*1024*1024:  # > 10MB
+            print(f"[✓] {info['filename']} already exists ({os.path.getsize(filepath)/1024/1024:.2f} MB)")
             continue
         
         print(f"[i] Downloading {info['filename']} from Google Drive...")
         try:
-            response = requests.get(info['url'], stream=True, timeout=300)
+            # First request to get confirm token
+            response = session.get(info['url'], stream=True, timeout=30)
+            
+            # Check for virus scan warning and get confirm token
+            confirm_token = None
+            for key_name, value in response.cookies.items():
+                if key_name.startswith('download_warning'):
+                    confirm_token = value
+                    break
+            
+            if confirm_token:
+                print(f"[i] Bypassing virus scan warning for {info['filename']}...")
+                # Get file ID from URL
+                file_id = info['url'].split('id=')[-1].split('&')[0]
+                confirm_url = f"https://drive.google.com/uc?export=download&confirm={confirm_token}&id={file_id}"
+                response = session.get(confirm_url, stream=True, timeout=300)
+            
             if response.status_code == 200:
                 with open(filepath, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                print(f"[✓] Downloaded {info['filename']} ({os.path.getsize(filepath)} bytes)")
+                    downloaded = 0
+                    for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if downloaded % (10*1024*1024) == 0:  # Print every 10MB
+                                print(f"[i] Downloaded {downloaded/1024/1024:.0f} MB...")
+                size_mb = os.path.getsize(filepath)/1024/1024
+                if size_mb > 1:
+                    print(f"[✓] Downloaded {info['filename']} ({size_mb:.2f} MB)")
+                else:
+                    print(f"[✗] Download incomplete: {info['filename']} ({size_mb:.2f} MB)")
             else:
                 print(f"[✗] Failed to download {info['filename']}: HTTP {response.status_code}")
         except Exception as e:
