@@ -437,32 +437,31 @@ def audit_log(event_type, details=None):
     except Exception:
         pass
 
-# SQL file URLs from Google Drive
+# SQL file URLs from Mega.nz
 SQL_FILES = {
     'foxnet': {
-        'url': 'https://drive.google.com/uc?export=download&id=1xestZYts7oTlAI-ECNvi3HQmZsMVeIM5',
-        'filename': '270k_data.sql',
+        'url': 'https://mega.nz/file/gAcxyTqK#pP7llNGiHvofsKaUonUPNF5JjrKLMEIE4D85ParXE1A',
+        'filename': 'sql_1.sql',
         'table': 'foxnet_data'
     },
-    'discord': {
-        'url': 'https://drive.google.com/uc?export=download&id=1O13yXcjo7ToQTDkY9a4OtZTylx94EreI',
-        'filename': 'discord_data.sql',
+    'mariadb': {
+        'url': 'https://mega.nz/file/VJkBSbyb#7dooJOFvsFObakl84NeINXZC6eEsxMY_ju4HZnrCRmU',
+        'filename': 'sql_2.sql',
         'table': 'discord_mariadb'
     },
     'five_sql': {
-        'url': 'https://drive.google.com/uc?export=download&id=1x2VPFN3Or5845LRdKjxAgJx0noYpZoCX',
-        'filename': '5.sql',
+        'url': 'https://mega.nz/file/pY0lQIzZ#afxXVsayAel7vsrvtkwQ36i3wsmEMRixZIIv9m9TirI',
+        'filename': 'sql_3.sql',
         'table': 'five_sql_data'
     }
 }
 
 def download_sql_files():
-    """Download SQL files from Google Drive if not exists (handles large file warnings)"""
+    """Download SQL files from Mega.nz if not exists"""
     import os
+    import subprocess
     data_dir = os.path.join(os.path.dirname(__file__), 'sql_data')
     os.makedirs(data_dir, exist_ok=True)
-    
-    session = requests.Session()
     
     for key, info in SQL_FILES.items():
         filepath = os.path.join(data_dir, info['filename'])
@@ -470,41 +469,26 @@ def download_sql_files():
             print(f"[✓] {info['filename']} already exists ({os.path.getsize(filepath)/1024/1024:.2f} MB)")
             continue
         
-        print(f"[i] Downloading {info['filename']} from Google Drive...")
+        print(f"[i] Downloading {info['filename']} from Mega.nz...")
         try:
-            # First request to get confirm token
-            response = session.get(info['url'], stream=True, timeout=30)
+            # Use megadl (megatools) to download from Mega.nz
+            result = subprocess.run(
+                ['megadl', info['url'], '-o', filepath],
+                capture_output=True,
+                text=True,
+                timeout=600
+            )
             
-            # Check for virus scan warning and get confirm token
-            confirm_token = None
-            for key_name, value in response.cookies.items():
-                if key_name.startswith('download_warning'):
-                    confirm_token = value
-                    break
-            
-            if confirm_token:
-                print(f"[i] Bypassing virus scan warning for {info['filename']}...")
-                # Get file ID from URL
-                file_id = info['url'].split('id=')[-1].split('&')[0]
-                confirm_url = f"https://drive.google.com/uc?export=download&confirm={confirm_token}&id={file_id}"
-                response = session.get(confirm_url, stream=True, timeout=300)
-            
-            if response.status_code == 200:
-                with open(filepath, 'wb') as f:
-                    downloaded = 0
-                    for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            if downloaded % (10*1024*1024) == 0:  # Print every 10MB
-                                print(f"[i] Downloaded {downloaded/1024/1024:.0f} MB...")
+            if result.returncode == 0 and os.path.exists(filepath):
                 size_mb = os.path.getsize(filepath)/1024/1024
                 if size_mb > 1:
                     print(f"[✓] Downloaded {info['filename']} ({size_mb:.2f} MB)")
                 else:
                     print(f"[✗] Download incomplete: {info['filename']} ({size_mb:.2f} MB)")
             else:
-                print(f"[✗] Failed to download {info['filename']}: HTTP {response.status_code}")
+                print(f"[✗] Failed to download {info['filename']}: {result.stderr}")
+        except FileNotFoundError:
+            print(f"[✗] megadl not installed. Install megatools: apt-get install megatools")
         except Exception as e:
             print(f"[✗] Error downloading {info['filename']}: {e}")
     
