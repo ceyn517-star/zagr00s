@@ -494,6 +494,72 @@ def download_sql_files():
     
     return data_dir
 
+def import_sql_to_postgres():
+    """Import SQL files into PostgreSQL"""
+    import os
+    import re
+    
+    if not USE_POSTGRES:
+        print("[i] Not using PostgreSQL, skipping import")
+        return
+    
+    data_dir = os.path.join(os.path.dirname(__file__), 'sql_data')
+    conn = psycopg2.connect(DATABASE_URL)
+    cursor = conn.cursor()
+    
+    # Check if data already exists
+    cursor.execute('SELECT COUNT(*) FROM foxnet_data')
+    if cursor.fetchone()[0] > 0:
+        print(f"[✓] Data already imported ({cursor.fetchone()[0]} rows)")
+        conn.close()
+        return
+    
+    print("[i] Importing SQL files to PostgreSQL...")
+    
+    # Import each SQL file
+    for key, info in SQL_FILES.items():
+        filepath = os.path.join(data_dir, info['filename'])
+        if not os.path.exists(filepath):
+            print(f"[✗] File not found: {filepath}")
+            continue
+        
+        print(f"[i] Importing {info['filename']} into {info['table']}...")
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+            
+            # Split by INSERT statements
+            inserts = re.findall(r'INSERT INTO[^(]*\([^)]*\)\s*VALUES[^;]*;', content, re.IGNORECASE)
+            
+            inserted = 0
+            for insert in inserts:
+                try:
+                    # Adapt table name
+                    insert = re.sub(r'INSERT INTO\s+\w+', f'INSERT INTO {info["table"]}', insert, count=1, flags=re.IGNORECASE)
+                    cursor.execute(insert)
+                    inserted += 1
+                    if inserted % 1000 == 0:
+                        conn.commit()
+                        print(f"[i] Inserted {inserted} rows...")
+                except Exception as e:
+                    pass  # Skip errors
+            
+            conn.commit()
+            print(f"[✓] Imported {inserted} rows into {info['table']}")
+            
+        except Exception as e:
+            print(f"[✗] Error importing {info['filename']}: {e}")
+    
+    # Show final stats
+    print("\n[✓] Import completed!")
+    for table in ['foxnet_data', 'five_sql_data', 'discord_mariadb']:
+        cursor.execute(f'SELECT COUNT(*) FROM {table}')
+        count = cursor.fetchone()[0]
+        print(f"  {table}: {count:,} rows")
+    
+    conn.close()
+
 def init_database():
     """Initialize the unified database with tables for all 3 sources"""
     if USE_POSTGRES:
@@ -3259,7 +3325,8 @@ def get_discord_friends():
 
 # Initialize database and data on module load (for gunicorn/production)
 print("[i] Starting initialization...")
-download_sql_files()  # Download SQL files from Google Drive
+download_sql_files()  # Download SQL files from Mega.nz
+import_sql_to_postgres()  # Import SQL files to PostgreSQL
 init_database()
 init_turkey_data()
 print("[✓] Database initialized")
