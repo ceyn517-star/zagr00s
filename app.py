@@ -18,6 +18,21 @@ from flask import Flask, request, jsonify, render_template, send_from_directory,
 from flask_cors import CORS
 from email_osint import EmailOSINT
 
+# PostgreSQL support
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+
+# ============ DATABASE CONFIGURATION ============
+DATABASE_URL = os.environ.get('DATABASE_URL', '')
+USE_POSTGRES = bool(DATABASE_URL) and POSTGRES_AVAILABLE
+
+# Fallback to SQLite if no PostgreSQL
+DATABASE_PATH = os.path.join(os.path.dirname(__file__), 'data', 'unified.db')
+
 # ============ AUTH CONFIGURATION ============
 SYSTEM_PASSWORD_HASH = os.environ.get(
     'ZAGROS_SYSTEM_PASSWORD_HASH',
@@ -379,10 +394,15 @@ def normalize_ip(ip_str):
         return None
 
 def get_db_connection():
-    """Get SQLite database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Get database connection - PostgreSQL or SQLite"""
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        conn.cursor_factory = RealDictCursor
+        return conn
+    else:
+        conn = sqlite3.connect(DATABASE_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def _table_has_column(cursor, table_name, column_name):
@@ -492,6 +512,160 @@ def download_sql_files():
 
 def init_database():
     """Initialize the unified database with tables for all 3 sources"""
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        
+        # PostgreSQL table creation
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS foxnet_data (
+                id SERIAL PRIMARY KEY,
+                discord_id TEXT NOT NULL,
+                email TEXT,
+                ip TEXT,
+                server_ids TEXT,
+                connections TEXT,
+                username TEXT,
+                user_agent TEXT,
+                raw_data TEXT,
+                source_file TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS five_sql_data (
+                id SERIAL PRIMARY KEY,
+                discord_id TEXT NOT NULL,
+                email TEXT,
+                ip TEXT,
+                server_ids TEXT,
+                username TEXT,
+                connections TEXT,
+                source_file TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS discord_mariadb (
+                id SERIAL PRIMARY KEY,
+                discord_id TEXT,
+                email TEXT,
+                ip TEXT,
+                username TEXT,
+                details TEXT,
+                source_table TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create indexes
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_foxnet_discord_id ON foxnet_data(discord_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_five_sql_discord_id ON five_sql_data(discord_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_mariadb_discord_id ON discord_mariadb(discord_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_foxnet_email ON foxnet_data(email)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_five_sql_email ON five_sql_data(email)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_foxnet_ip ON foxnet_data(ip)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_five_sql_ip ON five_sql_data(ip)')
+        
+        # Discord friends table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS discord_friends (
+                id SERIAL PRIMARY KEY,
+                discord_id TEXT NOT NULL,
+                friend_id TEXT NOT NULL,
+                friend_username TEXT,
+                friend_discriminator TEXT,
+                friend_email TEXT,
+                friend_ip TEXT,
+                friend_avatar TEXT,
+                relationship_type TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(discord_id, friend_id)
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_friends_discord_id ON discord_friends(discord_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_friends_friend_id ON discord_friends(friend_id)')
+        
+        # Findcord results table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS findcord_results (
+                id SERIAL PRIMARY KEY,
+                discord_id TEXT UNIQUE NOT NULL,
+                email TEXT,
+                username TEXT,
+                discriminator TEXT,
+                avatar TEXT,
+                verified BOOLEAN,
+                locale TEXT,
+                flags INTEGER,
+                raw_data TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_findcord_discord_id ON findcord_results(discord_id)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_findcord_email ON findcord_results(email)')
+        
+        # Audit log table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id SERIAL PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                ip TEXT,
+                user_agent TEXT,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # TC Kimlik table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS tc_101m (
+                id SERIAL PRIMARY KEY,
+                TC TEXT UNIQUE NOT NULL,
+                ADI TEXT,
+                SOYADI TEXT,
+                DOGUMTARIHI TEXT,
+                DOGUMYERI TEXT,
+                NUFUSIL TEXT,
+                NUFUSILCE TEXT,
+                ANNEADI TEXT,
+                ANNETC TEXT,
+                BABAADI TEXT,
+                BABATC TEXT,
+                CINSIYET TEXT,
+                MEDENIHAL TEXT,
+                DURUM TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_tc ON tc_101m(TC)')
+        
+        # İhbar tables
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ihbar_tickets (
+                id SERIAL PRIMARY KEY,
+                ticket_id TEXT UNIQUE NOT NULL,
+                tc_no TEXT,
+                ad_soyad TEXT,
+                telefon TEXT,
+                email TEXT,
+                ihbar_turu TEXT,
+                aciklama TEXT,
+                durum TEXT DEFAULT 'yeni',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        conn.commit()
+        conn.close()
+        print("[✓] PostgreSQL tables initialized")
+        return
+    
+    # SQLite fallback
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
