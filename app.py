@@ -3323,6 +3323,114 @@ def get_discord_friends():
         })
 
 
+# ============ ROBLOX & CRAFTRISE INTELLIGENCE ============
+@app.route('/api/sources/roblox-intelligence', methods=['GET'])
+@login_required
+def roblox_intelligence():
+    """Roblox intelligence data"""
+    query = request.args.get('query', '').strip()
+    
+    if not query:
+        return jsonify({
+            'success': True,
+            'source': 'roblox-intelligence',
+            'data': [],
+            'message': 'Roblox intelligence verisi bulunamadı'
+        })
+    
+    # Search in database for Roblox-related data
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    results = []
+    
+    # Search by email or username
+    try:
+        # Search in all tables for email matches
+        for table in ['foxnet_data', 'five_sql_data', 'discord_mariadb']:
+            cursor.execute(f'''
+                SELECT discord_id, email, ip, username, connections 
+                FROM {table} 
+                WHERE email LIKE ? OR username LIKE ?
+                LIMIT 50
+            ''', (f'%{query}%', f'%{query}%'))
+            
+            for row in cursor.fetchall():
+                results.append({
+                    'discord_id': row[0],
+                    'email': row[1],
+                    'ip': row[2],
+                    'username': row[3],
+                    'connections': row[4],
+                    'source': table
+                })
+    except Exception as e:
+        pass
+    finally:
+        conn.close()
+    
+    return jsonify({
+        'success': True,
+        'source': 'roblox-intelligence',
+        'query': query,
+        'data': results[:50],
+        'count': len(results)
+    })
+
+
+@app.route('/api/sources/craftrise-intelligence', methods=['GET'])
+@login_required
+def craftrise_intelligence():
+    """Craftrise intelligence data"""
+    query = request.args.get('query', '').strip()
+    
+    if not query:
+        return jsonify({
+            'success': True,
+            'source': 'craftrise-intelligence',
+            'data': [],
+            'message': 'Craftrise intelligence verisi bulunamadı'
+        })
+    
+    # Search in database for Minecraft/Craftrise-related data
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    results = []
+    
+    try:
+        # Search by email or IP
+        for table in ['foxnet_data', 'five_sql_data', 'discord_mariadb']:
+            cursor.execute(f'''
+                SELECT discord_id, email, ip, username, server_ids
+                FROM {table} 
+                WHERE email LIKE ? OR ip LIKE ? OR username LIKE ?
+                LIMIT 50
+            ''', (f'%{query}%', f'%{query}%', f'%{query}%'))
+            
+            for row in cursor.fetchall():
+                results.append({
+                    'discord_id': row[0],
+                    'email': row[1],
+                    'ip': row[2],
+                    'username': row[3],
+                    'server_ids': row[4],
+                    'source': table
+                })
+    except Exception as e:
+        pass
+    finally:
+        conn.close()
+    
+    return jsonify({
+        'success': True,
+        'source': 'craftrise-intelligence',
+        'query': query,
+        'data': results[:50],
+        'count': len(results)
+    })
+
+
 # Initialize database and data on module load (for gunicorn/production)
 print("[i] Starting initialization...")
 download_sql_files()  # Download SQL files from Mega.nz
